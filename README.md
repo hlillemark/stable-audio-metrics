@@ -7,7 +7,7 @@ Collection of metrics for evaluating music and audio generative models:
 `stable-audio-metrics` adapted established metrics to assess the more realistic use case of long-form full-band stereo generations. All metrics can deal with variable-length inputs.
 
 ## Installation 
-Clone this repository, and create a python virtual environment `python3 -m venv env`, activate it `source env/bin/activate`, and install the dependencies `pip install -r requirements.txt`.
+Clone this repository, and create a python virtual environment `conda create -n stable-audio-metrics python=3.10`, activate it `conda activate stable-audio-metrics`, and install the dependencies `pip install -r requirements.txt`.
 
 - ***GPU SUPPORT*** –We only support GPU usage, because it can be too slow on CPU.
 - ***TROUBLESHOOTING*** – It might require an older version of cuda because of Openl3 dependencies. Try cuda 11.8 if you find it does not run on GPU as expected.

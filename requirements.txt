@@ -10,7 +10,7 @@ certifi==2023.7.22
 cffi==1.16.0
 charset-normalizer==3.3.0
 click==8.1.7
-decorator==5.1.1
+# decorator==5.1.1
 docker-pycreds==0.4.0
 executing==2.0.0
 filelock==3.12.4
@@ -27,7 +27,7 @@ google-pasta==0.2.0
 grpcio==1.59.0
 h5py==3.10.0
 -e git+https://github.com/kkoutini/passt_hear21@3d4e7cf10cd992d15e8e2da4db97c1766e79a93b#egg=hear21passt
-huggingface-hub==0.18.0
+huggingface-hub #==0.18.0
 idna==3.4
 imageio==2.31.5
 imageio-ffmpeg==0.4.9
@@ -129,7 +129,7 @@ tqdm==4.66.1
 traitlets==5.12.0
 transformers==4.34.0
 triton==2.1.0
-typing-extensions==4.8.0
+# typing-extensions==4.8.0
 tzdata==2023.3
 urllib3==2.0.6
 wandb==0.15.12
