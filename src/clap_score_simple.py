@@ -7,6 +7,7 @@ import laion_clap
 from clap_module.factory import load_state_dict
 import librosa
 import pyloudnorm as pyln
+import json
 
 # following documentation from https://github.com/LAION-AI/CLAP
 def int16_to_float32(x):
@@ -146,31 +147,84 @@ def clap_score_from_folder(audio_folder, prompt_text_mapping, audio_extension='.
     return clap_score_simple(prompts, full_audio_paths, clap_model)
 
 
+def clap_score_from_json(json_file_path, clap_model='630k-audioset-fusion-best.pt'):
+    """
+    Calculate CLAP score from a JSON file containing prompts and audio file paths.
+    
+    Params:
+    -- json_file_path: path to JSON file with format:
+       {
+         "id": {
+           "prompt": "text prompt",
+           "audio_file_path": "/path/to/audio.wav",
+           ...
+         },
+         ...
+       }
+    -- clap_model: CLAP model to use
+    
+    Returns:
+    -- Average CLAP score
+    """
+    # Load JSON file
+    with open(json_file_path, 'r') as f:
+        data = json.load(f)
+    
+    # Extract prompts and audio file paths
+    prompts = []
+    audio_files = []
+    
+    for item_id, item_data in data.items():
+        if 'prompt' in item_data and 'audio_file_path' in item_data:
+            prompts.append(item_data['prompt'])
+            audio_files.append(item_data['audio_file_path'])
+        else:
+            print(f"Warning: Missing prompt or audio_file_path for item {item_id}")
+    
+    if not prompts:
+        raise ValueError("No valid prompt/audio_file_path pairs found in JSON file")
+    
+    print(f"Loaded {len(prompts)} prompt/audio pairs from {json_file_path}")
+    
+    return clap_score_simple(prompts, audio_files, clap_model)
+
+
 if __name__ == "__main__":
-    # Example usage 1: Direct lists
-    prompts = [
-        "a piano melody with soft drums",
-        "rock music with electric guitar solo",
-        "ambient electronic music"
-    ]
+    import sys
     
-    audio_files = [
-        "generated_audio/sample_001.wav",
-        "generated_audio/sample_002.wav", 
-        "generated_audio/sample_003.wav"
-    ]
-    
-    # Calculate CLAP score
-    score = clap_score_simple(prompts, audio_files)
-    print(f'CLAP score: {score}')
-    
-    # Example usage 2: From folder with mapping
-    prompt_mapping = {
-        "sample_001": "a piano melody with soft drums",
-        "sample_002": "rock music with electric guitar solo",
-        "sample_003": "ambient electronic music"
-    }
-    
-    score = clap_score_from_folder("generated_audio/", prompt_mapping)
-    print(f'CLAP score from folder: {score}') 
+    if len(sys.argv) > 1:
+        # Use JSON file if provided as command line argument
+        json_file_path = sys.argv[1]
+        clap_model = sys.argv[2] if len(sys.argv) > 2 else '630k-audioset-fusion-best.pt'
+        
+        print(f"Computing CLAP score from JSON file: {json_file_path}")
+        score = clap_score_from_json(json_file_path, clap_model)
+        print(f'CLAP score: {score}')
+    else:
+        # Original example usage
+        prompts = [
+            "a piano melody with soft drums",
+            "rock music with electric guitar solo",
+            "ambient electronic music"
+        ]
+        
+        audio_files = [
+            "generated_audio/sample_001.wav",
+            "generated_audio/sample_002.wav", 
+            "generated_audio/sample_003.wav"
+        ]
+        
+        # Calculate CLAP score
+        score = clap_score_simple(prompts, audio_files)
+        print(f'CLAP score: {score}')
+        
+        # Example usage 2: From folder with mapping
+        prompt_mapping = {
+            "sample_001": "a piano melody with soft drums",
+            "sample_002": "rock music with electric guitar solo",
+            "sample_003": "ambient electronic music"
+        }
+        
+        score = clap_score_from_folder("generated_audio/", prompt_mapping)
+        print(f'CLAP score from folder: {score}') 
 
