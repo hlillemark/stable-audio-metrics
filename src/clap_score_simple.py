@@ -93,6 +93,12 @@ def clap_score_simple(prompts, audio_files, clap_model='630k-audioset-fusion-bes
     score = 0
     count = 0
     
+    # CLAP model expects exactly 10 seconds at 48kHz (480,000 samples)
+    target_sr = 48000
+    target_duration = 10.0
+    target_samples = int(target_sr * target_duration)
+    original_sr = 32000
+    
     for i in tqdm(range(len(audio_files))):
         audio_file = audio_files[i]
         if not os.path.exists(audio_file):
@@ -100,9 +106,28 @@ def clap_score_simple(prompts, audio_files, clap_model='630k-audioset-fusion-bes
             continue
             
         with torch.no_grad():
-            audio, _ = librosa.load(audio_file, sr=48000, mono=True)
+            # Load and resample to 48kHz
+            audio, original_sr = librosa.load(audio_file, sr=original_sr, mono=True)
+            
+            # Resample to 48khz
+            audio = librosa.resample(audio, orig_sr=original_sr, target_sr=target_sr)
+            
+            # Handle duration - clip to 10 seconds or pad with zeros
+            if len(audio) > target_samples:
+                # Clip to first 10 seconds
+                original_len = len(audio)
+                # TODO: Skipping clip for now
+                # audio = audio[:target_samples]
+                # print(f"Clipped audio {os.path.basename(audio_file)} from {original_len/target_sr:.2f}s to {target_duration}s")
+            elif len(audio) < target_samples:
+                # Pad with zeros to reach 10 seconds
+                padding = target_samples - len(audio)
+                audio = np.pad(audio, (0, padding), mode='constant', constant_values=0)
+                print(f"Padded audio {os.path.basename(audio_file)} from {(len(audio)-padding)/target_sr:.2f}s to {target_duration}s")
+            
+            # Normalize audio
             audio = pyln.normalize.peak(audio, -1.0)
-            audio = audio.reshape(1, -1)
+            audio = audio.reshape(1, -1) # unsqueeze (1,T)
             audio = torch.from_numpy(int16_to_float32(float32_to_int16(audio))).float()
             audio_embeddings = model.get_audio_embedding_from_data(x=audio, use_tensor=True)
         
@@ -156,7 +181,7 @@ def clap_score_from_json(json_file_path, clap_model='630k-audioset-fusion-best.p
        {
          "id": {
            "prompt": "text prompt",
-           "audio_file_path": "/path/to/audio.wav",
+           "generated_audio_file": "/path/to/audio.wav",
            ...
          },
          ...
@@ -173,16 +198,18 @@ def clap_score_from_json(json_file_path, clap_model='630k-audioset-fusion-best.p
     # Extract prompts and audio file paths
     prompts = []
     audio_files = []
+    # audio_path_name = "audio_file_path" # 
+    audio_path_name = "generated_audio_file"
     
     for item_id, item_data in data.items():
-        if 'prompt' in item_data and 'audio_file_path' in item_data:
+        if 'prompt' in item_data and audio_path_name in item_data:
             prompts.append(item_data['prompt'])
-            audio_files.append(item_data['audio_file_path'])
+            audio_files.append(item_data[audio_path_name])
         else:
-            print(f"Warning: Missing prompt or audio_file_path for item {item_id}")
+            print(f"Warning: Missing prompt or audio_path_name for item {item_id}")
     
     if not prompts:
-        raise ValueError("No valid prompt/audio_file_path pairs found in JSON file")
+        raise ValueError("No valid prompt/audio_path_name pairs found in JSON file")
     
     print(f"Loaded {len(prompts)} prompt/audio pairs from {json_file_path}")
     
